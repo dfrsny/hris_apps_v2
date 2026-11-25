@@ -12,7 +12,10 @@ import 'package:hris_apps/features/auth/presentation/pages/auth_gate.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Supabase.initialize(url: urlKey, publishableKey: publishKey);
+  await Supabase.initialize(
+    url: ApiKeys.supabaseUrl,
+    publishableKey: ApiKeys.supabasePublishKey,
+  );
 
   // Data layer
   final dataSource = AuthRemoteDataSource(Supabase.instance.client);

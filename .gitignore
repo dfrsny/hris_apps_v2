@@ -46,3 +46,7 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Secret keys (Supabase)
+env.json
+lib/core/constants/api_key.dart
