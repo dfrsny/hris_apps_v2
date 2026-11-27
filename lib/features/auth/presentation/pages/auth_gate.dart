@@ -3,7 +3,10 @@ import 'package:material_ui/material_ui.dart';
 import 'package:hris_apps/features/auth/domain/entities/user_entity.dart';
 import 'package:hris_apps/features/auth/domain/entities/user_role.dart';
 import 'package:hris_apps/features/auth/presentation/controllers/auth_controller.dart';
-import 'package:hris_apps/features/auth/presentation/pages/dashboards.dart';
+import 'package:hris_apps/features/admin/presentation/pages/admin_dashboard_page.dart';
+import 'package:hris_apps/features/auth/presentation/pages/hr_dashboard_page.dart';
+import 'package:hris_apps/features/auth/presentation/pages/finance_dashboard_page.dart';
+import 'package:hris_apps/features/auth/presentation/pages/employee_dashboard_page.dart';
 import 'package:hris_apps/features/auth/presentation/pages/login_page.dart';
 
 class AuthGate extends StatelessWidget {
@@ -44,4 +47,3 @@ class AuthGate extends StatelessWidget {
     };
   }
 }
- 

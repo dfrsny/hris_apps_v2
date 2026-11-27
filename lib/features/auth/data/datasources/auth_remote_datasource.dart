@@ -1,5 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-
+import 'package:flutter/foundation.dart';
 import 'package:hris_apps/features/auth/domain/failures/auth_failure.dart';
 import 'package:hris_apps/features/auth/data/models/user_model.dart';
 
@@ -19,11 +19,18 @@ class AuthRemoteDataSource {
       );
       final user = response.user;
       if (user == null) {
+        debugPrint('[AUTH] response.user null');
         throw const AuthFailure('Login gagal, silakan coba lagi.');
       }
       return await _loadCurrentUser(user);
     } on AuthException catch (e) {
+      debugPrint(
+        '[AUTH] AuthException code=${e.code} status=${e.statusCode} msg=${e.message}',
+      );
       throw AuthFailure(_translateAuthError(e));
+    } catch (e, st) {
+      debugPrint('[AUTH] error lain: $e\n$st');
+      rethrow;
     }
   }
 
