@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hris_apps/features/admin/data/datasources/admin_remote_datasource.dart';
 import 'package:hris_apps/features/admin/data/repositories/admin_repository_impl.dart';
 import 'package:hris_apps/features/admin/domain/usecases/create_account_usecase.dart';
@@ -20,11 +21,11 @@ class AdminDashboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Jika Anda sudah memakai GetIt / Injection Container di root app,
-    // Anda bisa mengganti create ini dengan: (_) => sl<AdminProvider>()..initializeDashboard()
     return ChangeNotifierProvider<AdminProvider>(
       create: (_) {
-        final dataSource = AdminRemoteDataSourceImpl();
+        final dataSource = AdminRemoteDataSourceImpl(
+          supabaseClient: Supabase.instance.client,
+        );
         final repository = AdminRepositoryImpl(remoteDataSource: dataSource);
 
         return AdminProvider(
@@ -42,12 +43,12 @@ class AdminDashboardPage extends StatelessWidget {
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.manage_accounts_outlined),
-            selectedIcon: Icon(Icons.manage_accounts),
+            selectedIcon: Icon(Icons.manage_accounts_rounded),
             label: 'Akun',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
+            selectedIcon: Icon(Icons.settings_rounded),
             label: 'Sistem',
           ),
         ],

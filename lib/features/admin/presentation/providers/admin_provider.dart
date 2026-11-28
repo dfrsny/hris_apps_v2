@@ -32,6 +32,8 @@ class AdminProvider extends ChangeNotifier {
   UserRole? _filterRole;
   bool _isLoadingAccounts = false;
   bool _isCreatingAccount = false;
+  String? _errorMessage;
+  String? get errorMessage => _errorMessage;
 
   // --- System Settings State ---
   SystemSettings? _systemSettings;
@@ -70,7 +72,9 @@ class AdminProvider extends ChangeNotifier {
     _isLoadingAccounts = true;
     notifyListeners();
     try {
-      _accounts = await getAccountsUseCase();
+      final result = await getAccountsUseCase();
+
+      _accounts = List<ManagedAccount>.from(result);
     } finally {
       _isLoadingAccounts = false;
       notifyListeners();
@@ -105,7 +109,6 @@ class AdminProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // --- Account Mutations ---
   Future<bool> createAccount({
     required String displayName,
     required String email,
@@ -121,7 +124,7 @@ class AdminProvider extends ChangeNotifier {
         password: password,
         role: role,
       );
-      _accounts = [created, ..._accounts];
+      _accounts = List<ManagedAccount>.from([created, ..._accounts]);
       return true;
     } catch (_) {
       return false;
@@ -158,6 +161,7 @@ class AdminProvider extends ChangeNotifier {
     if (index == -1) return false;
 
     final previous = _accounts[index];
+    _errorMessage = null;
     // Optimistic update
     _accounts[index] = previous.copyWith(isActive: isActive);
     notifyListeners();
@@ -167,9 +171,11 @@ class AdminProvider extends ChangeNotifier {
       _accounts[index] = updated;
       notifyListeners();
       return true;
-    } catch (_) {
-      // Rollback jika gagal
+    } catch (e) {
+      // Rollback jika gagal & simpan pesan error
       _accounts[index] = previous;
+      _errorMessage = e.toString().replaceFirst('Exception: ', '');
+      debugPrint('=== TOGGLE STATUS ERROR === $_errorMessage');
       notifyListeners();
       return false;
     }

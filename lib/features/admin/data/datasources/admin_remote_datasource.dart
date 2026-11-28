@@ -1,3 +1,4 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hris_apps/features/admin/data/models/managed_account_model.dart';
 import 'package:hris_apps/features/admin/data/models/system_settings_model.dart';
 import 'package:hris_apps/features/auth/domain/entities/user_role.dart';
@@ -17,50 +18,46 @@ abstract class AdminRemoteDataSource {
 }
 
 class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
-  // Simulasi in-memory database sementara sebelum integrasi Supabase Client
-  final List<ManagedAccountModel> _mockDbAccounts = [
-    const ManagedAccountModel(
-      id: 'usr-001',
-      email: 'nadia.hr@perusahaan.co.id',
-      displayName: 'Nadia Pratama',
-      role: UserRole.hr,
-      isActive: true,
-    ),
-    const ManagedAccountModel(
-      id: 'usr-002',
-      email: 'budi.fin@perusahaan.co.id',
-      displayName: 'Budi Santoso',
-      role: UserRole.finance,
-      isActive: true,
-    ),
-    const ManagedAccountModel(
-      id: 'usr-003',
-      email: 'rizky.dev@perusahaan.co.id',
-      displayName: 'Rizky Ramadhan',
-      role: UserRole.employee,
-      isActive: true,
-    ),
-    const ManagedAccountModel(
-      id: 'usr-004',
-      email: 'sari.ops@perusahaan.co.id',
-      displayName: 'Sari Wulandari',
-      role: UserRole.employee,
-      isActive: false,
-    ),
-  ];
+  final SupabaseClient _supabase;
 
-  SystemSettingsModel _mockSettings = const SystemSettingsModel(
-    companyName: 'PT Nusantara Teknologi Digital',
-    clockInHour: 8,
-    clockInMinute: 30,
-    clockOutHour: 17,
-    clockOutMinute: 30,
-  );
+  AdminRemoteDataSourceImpl({SupabaseClient? supabaseClient})
+    : _supabase = supabaseClient ?? Supabase.instance.client;
+
+  static const String _profilesTable = 'profiles';
+  static const String _settingsTable = 'system_settings';
+  static const String _createUserFunction = 'create-user';
+  static const String _profileColumns = 'id, email, full_name, role, is_active';
+
+  String _roleToDbValue(UserRole role) {
+    switch (role) {
+      case UserRole.superAdmin:
+        return 'super_admin';
+      case UserRole.hr:
+        return 'hr';
+      case UserRole.finance:
+        return 'finance';
+      case UserRole.employee:
+        return 'employee';
+    }
+  }
 
   @override
   Future<List<ManagedAccountModel>> fetchAccounts() async {
-    await Future<void>.delayed(const Duration(milliseconds: 300));
-    return List.unmodifiable(_mockDbAccounts);
+    try {
+      final response = await _supabase
+          .from(_profilesTable)
+          .select(_profileColumns)
+          .neq('role', 'super_admin')
+          .order('created_at', ascending: false);
+
+      return (response as List<dynamic>)
+          .map(
+            (row) => ManagedAccountModel.fromJson(row as Map<String, dynamic>),
+          )
+          .toList();
+    } on PostgrestException catch (e) {
+      throw Exception('Gagal memuat daftar akun: ${e.message}');
+    }
   }
 
   @override
@@ -70,17 +67,40 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
     required String password,
     required UserRole role,
   }) async {
-    // TODO: Panggil Supabase Edge Function: supabase.functions.invoke('create-user', body: ...)
-    await Future<void>.delayed(const Duration(milliseconds: 600));
-    final newAccount = ManagedAccountModel(
-      id: 'usr-${DateTime.now().millisecondsSinceEpoch}',
-      email: email.trim(),
-      displayName: displayName.trim(),
-      role: role,
-      isActive: true,
-    );
-    _mockDbAccounts.insert(0, newAccount);
-    return newAccount;
+    if (role == UserRole.superAdmin) {
+      throw Exception(
+        'Role Super Admin hanya dapat diberikan melalui SQL manual.',
+      );
+    }
+
+    try {
+      final response = await _supabase.functions.invoke(
+        _createUserFunction,
+        body: {
+          'email': email.trim(),
+          'password': password,
+          'full_name': displayName.trim(),
+          'role': _roleToDbValue(role),
+        },
+      );
+
+      final data = response.data;
+      if (data == null || data is! Map<String, dynamic>) {
+        throw Exception('Respons server tidak valid.');
+      }
+
+      final userMap = (data['user'] is Map<String, dynamic>)
+          ? data['user'] as Map<String, dynamic>
+          : data;
+
+      return ManagedAccountModel.fromJson(userMap);
+    } on FunctionException catch (e) {
+      final details = e.details;
+      final serverMessage = (details is Map && details['error'] != null)
+          ? details['error'].toString()
+          : (e.reasonPhrase ?? 'Gagal membuat akun di server.');
+      throw Exception(serverMessage);
+    }
   }
 
   @override
@@ -88,18 +108,24 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
     String accountId,
     UserRole newRole,
   ) async {
-    await Future<void>.delayed(const Duration(milliseconds: 250));
-    final idx = _mockDbAccounts.indexWhere((e) => e.id == accountId);
-    if (idx == -1) throw Exception('Akun tidak ditemukan');
-    final updated = ManagedAccountModel(
-      id: _mockDbAccounts[idx].id,
-      email: _mockDbAccounts[idx].email,
-      displayName: _mockDbAccounts[idx].displayName,
-      role: newRole,
-      isActive: _mockDbAccounts[idx].isActive,
-    );
-    _mockDbAccounts[idx] = updated;
-    return updated;
+    if (newRole == UserRole.superAdmin) {
+      throw Exception(
+        'Tidak dapat mengubah role menjadi Super Admin lewat UI.',
+      );
+    }
+
+    try {
+      final response = await _supabase
+          .from(_profilesTable)
+          .update({'role': _roleToDbValue(newRole)})
+          .eq('id', accountId)
+          .select(_profileColumns)
+          .single();
+
+      return ManagedAccountModel.fromJson(response);
+    } on PostgrestException catch (e) {
+      throw Exception('Gagal memperbarui role akun: ${e.message}');
+    }
   }
 
   @override
@@ -107,33 +133,69 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
     String accountId,
     bool isActive,
   ) async {
-    await Future<void>.delayed(const Duration(milliseconds: 250));
-    final idx = _mockDbAccounts.indexWhere((e) => e.id == accountId);
-    if (idx == -1) throw Exception('Akun tidak ditemukan');
-    final updated = ManagedAccountModel(
-      id: _mockDbAccounts[idx].id,
-      email: _mockDbAccounts[idx].email,
-      displayName: _mockDbAccounts[idx].displayName,
-      role: _mockDbAccounts[idx].role,
-      isActive: isActive,
-    );
-    _mockDbAccounts[idx] = updated;
-    return updated;
+    try {
+      final response = await _supabase
+          .from(_profilesTable)
+          .update({'is_active': isActive})
+          .eq('id', accountId)
+          .select(_profileColumns)
+          .single();
+
+      return ManagedAccountModel.fromJson(response);
+    } on PostgrestException catch (e) {
+      throw Exception('Gagal memperbarui status akun: ${e.message}');
+    }
   }
 
   @override
   Future<SystemSettingsModel> fetchSystemSettings() async {
-    await Future<void>.delayed(const Duration(milliseconds: 250));
-    return _mockSettings;
+    try {
+      final response = await _supabase
+          .from(_settingsTable)
+          .select(
+            'company_name, clock_in_hour, clock_in_minute, clock_out_hour, clock_out_minute',
+          )
+          .eq('id', 1)
+          .maybeSingle();
+
+      if (response == null) {
+        return const SystemSettingsModel(
+          companyName: 'PT Nusantara Teknologi Digital',
+          clockInHour: 8,
+          clockInMinute: 30,
+          clockOutHour: 17,
+          clockOutMinute: 30,
+        );
+      }
+
+      return SystemSettingsModel.fromJson(response);
+    } on PostgrestException catch (e) {
+      throw Exception('Gagal memuat pengaturan sistem: ${e.message}');
+    }
   }
 
   @override
   Future<SystemSettingsModel> saveSystemSettings(
     SystemSettingsModel settings,
   ) async {
-    // TODO: Simpan ke tabel system_settings di Supabase
-    await Future<void>.delayed(const Duration(milliseconds: 500));
-    _mockSettings = settings;
-    return _mockSettings;
+    try {
+      final payload = {
+        'id': 1,
+        ...settings.toJson(),
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      };
+
+      final response = await _supabase
+          .from(_settingsTable)
+          .upsert(payload)
+          .select(
+            'company_name, clock_in_hour, clock_in_minute, clock_out_hour, clock_out_minute',
+          )
+          .single();
+
+      return SystemSettingsModel.fromJson(response);
+    } on PostgrestException catch (e) {
+      throw Exception('Gagal menyimpan pengaturan sistem: ${e.message}');
+    }
   }
 }

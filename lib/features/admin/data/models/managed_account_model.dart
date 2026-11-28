@@ -11,12 +11,19 @@ class ManagedAccountModel extends ManagedAccount {
   });
 
   factory ManagedAccountModel.fromJson(Map<String, dynamic> json) {
+    final rawRole = json['role'] as String? ?? 'employee';
+    final normalizedRole = rawRole == 'super_admin' ? 'superAdmin' : rawRole;
+
     return ManagedAccountModel(
       id: json['id'] as String,
-      email: json['email'] as String,
-      displayName: json['display_name'] as String,
+      email: json['email'] as String? ?? '',
+      // Mapping langsung dari kolom asli database (full_name) ke entity (displayName)
+      displayName:
+          (json['full_name'] as String?) ??
+          (json['display_name'] as String?) ??
+          '',
       role: UserRole.values.firstWhere(
-        (e) => e.name == json['role'],
+        (e) => e.name == normalizedRole,
         orElse: () => UserRole.employee,
       ),
       isActive: json['is_active'] as bool? ?? true,
@@ -27,8 +34,8 @@ class ManagedAccountModel extends ManagedAccount {
     return {
       'id': id,
       'email': email,
-      'display_name': displayName,
-      'role': role.name,
+      'full_name': displayName,
+      'role': role == UserRole.superAdmin ? 'super_admin' : role.name,
       'is_active': isActive,
     };
   }

@@ -1,5 +1,8 @@
+import 'package:gap/gap.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
+import 'package:hris_apps/apps/theme/app_colors.dart';
+import 'package:hris_apps/apps/theme/app_dimensions.dart';
 import 'package:hris_apps/features/admin/presentation/providers/admin_provider.dart';
 
 class SystemSettingsTab extends StatefulWidget {
@@ -52,21 +55,24 @@ class _SystemSettingsTabState extends State<SystemSettingsTab> {
     );
 
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: success ? null : Colors.red,
-        content: Text(
-          success
-              ? 'Pengaturan sistem berhasil diperbarui.'
-              : 'Gagal menyimpan pengaturan sistem.',
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          backgroundColor: success ? null : AppColors.error,
+          content: Text(
+            success
+                ? 'Pengaturan sistem berhasil diperbarui.'
+                : 'Gagal menyimpan pengaturan sistem.',
+          ),
         ),
-      ),
-    );
+      );
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final provider = context.watch<AdminProvider>();
 
     if (provider.isLoadingSettings && !_hasSyncedInitialData) {
@@ -88,18 +94,13 @@ class _SystemSettingsTabState extends State<SystemSettingsTab> {
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: AppDimensions.paddingPage,
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 600),
           child: Card(
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: Colors.grey.shade300),
-            ),
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(AppDimensions.space20),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -107,70 +108,75 @@ class _SystemSettingsTabState extends State<SystemSettingsTab> {
                   children: [
                     Text(
                       'Konfigurasi Perusahaan & Jam Kerja',
-                      style: Theme.of(context).textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.titleMedium,
                     ),
-                    const SizedBox(height: 4),
+                    AppDimensions.gap4,
                     Text(
                       'Pengaturan dasar sistem yang berlaku secara global.',
-                      style: Theme.of(context).textTheme.bodySmall,
+                      style: theme.textTheme.bodySmall,
                     ),
-                    const Divider(height: 28),
+                    const Gap(AppDimensions.space14),
+                    const Divider(),
+                    const Gap(AppDimensions.space14),
                     TextFormField(
                       controller: _companyNameController,
                       decoration: const InputDecoration(
                         labelText: 'Nama Perusahaan',
-                        prefixIcon: Icon(Icons.business_outlined),
-                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(
+                          Icons.business_outlined,
+                          size: AppDimensions.iconMd,
+                        ),
                       ),
                       validator: (val) => (val == null || val.trim().isEmpty)
                           ? 'Nama perusahaan tidak boleh kosong'
                           : null,
                     ),
-                    const SizedBox(height: 20),
+                    AppDimensions.gap20,
                     Text(
                       'Standar Jam Kerja Operasional',
-                      style: Theme.of(context).textTheme.titleSmall,
+                      style: theme.textTheme.titleSmall,
                     ),
-                    const SizedBox(height: 10),
+                    AppDimensions.gap10,
                     Row(
                       children: [
                         Expanded(
                           child: InkWell(
                             onTap: () => _pickTime(isClockIn: true),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: AppDimensions.borderRadiusSm,
                             child: InputDecorator(
                               decoration: const InputDecoration(
                                 labelText: 'Jam Masuk',
-                                prefixIcon: Icon(Icons.login_outlined),
-                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(
+                                  Icons.login_rounded,
+                                  size: AppDimensions.iconMd,
+                                ),
                               ),
                               child: Text(
                                 _formatTime(_clockInTime),
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        AppDimensions.gap16,
                         Expanded(
                           child: InkWell(
                             onTap: () => _pickTime(isClockIn: false),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: AppDimensions.borderRadiusSm,
                             child: InputDecorator(
                               decoration: const InputDecoration(
                                 labelText: 'Jam Pulang',
-                                prefixIcon: Icon(Icons.logout_outlined),
-                                border: OutlineInputBorder(),
+                                prefixIcon: Icon(
+                                  Icons.logout_rounded,
+                                  size: AppDimensions.iconMd,
+                                ),
                               ),
                               child: Text(
                                 _formatTime(_clockOutTime),
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
@@ -178,7 +184,7 @@ class _SystemSettingsTabState extends State<SystemSettingsTab> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
+                    AppDimensions.gap24,
                     Align(
                       alignment: Alignment.centerRight,
                       child: FilledButton.icon(
@@ -186,15 +192,18 @@ class _SystemSettingsTabState extends State<SystemSettingsTab> {
                             ? null
                             : _saveSettings,
                         icon: provider.isSavingSettings
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
+                            ? SizedBox(
+                                width: AppDimensions.iconSm,
+                                height: AppDimensions.iconSm,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Colors.white,
+                                  color: colors.onPrimary,
                                 ),
                               )
-                            : const Icon(Icons.save_outlined),
+                            : const Icon(
+                                Icons.save_outlined,
+                                size: AppDimensions.iconSm,
+                              ),
                         label: const Text('Simpan Pengaturan'),
                       ),
                     ),

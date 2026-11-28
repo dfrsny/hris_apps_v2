@@ -1,5 +1,7 @@
+import 'package:gap/gap.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
+import 'package:hris_apps/apps/theme/app_dimensions.dart';
 import 'package:hris_apps/features/admin/presentation/extensions/user_role_ui_ext.dart';
 import 'package:hris_apps/features/admin/presentation/providers/admin_provider.dart';
 import 'package:hris_apps/features/admin/presentation/widgets/account_card_item.dart';
@@ -24,11 +26,13 @@ class _AccountManagementTabState extends State<AccountManagementTab> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final provider = context.watch<AdminProvider>();
     final accounts = provider.filteredAccounts;
 
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: AppDimensions.paddingPage,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -40,26 +44,25 @@ class _AccountManagementTabState extends State<AccountManagementTab> {
                   children: [
                     Text(
                       'Daftar Akun Pengguna (${provider.totalAccountsCount})',
-                      style: Theme.of(context).textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.titleMedium,
                     ),
-                    const SizedBox(height: 2),
+                    const Gap(AppDimensions.space2),
                     Text(
                       '${provider.activeAccountsCount} akun aktif • Role Super Admin hanya dapat diberikan via SQL manual',
-                      style: Theme.of(context).textTheme.bodySmall,
+                      style: theme.textTheme.bodySmall,
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
+              AppDimensions.gap12,
               FilledButton.icon(
                 onPressed: () => CreateAccountDialog.show(context),
-                icon: const Icon(Icons.add),
+                icon: const Icon(Icons.add_rounded, size: AppDimensions.iconMd),
                 label: const Text('Buat Akun'),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          AppDimensions.gap16,
           LayoutBuilder(
             builder: (context, constraints) {
               final isNarrow = constraints.maxWidth < 480;
@@ -68,32 +71,25 @@ class _AccountManagementTabState extends State<AccountManagementTab> {
                 onChanged: provider.setSearchQuery,
                 decoration: InputDecoration(
                   hintText: 'Cari nama akun atau email...',
-                  prefixIcon: const Icon(Icons.search),
+                  prefixIcon: const Icon(
+                    Icons.search_rounded,
+                    size: AppDimensions.iconMd,
+                  ),
                   suffixIcon: provider.searchQuery.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear, size: 18),
+                          icon: const Icon(Icons.clear_rounded, size: 18),
                           onPressed: () {
                             _searchController.clear();
                             provider.setSearchQuery('');
                           },
                         )
                       : null,
-                  isDense: true,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
                 ),
               );
 
               final roleDropdown = DropdownButtonFormField<UserRole?>(
                 initialValue: provider.filterRole,
-
-                decoration: InputDecoration(
-                  labelText: 'Filter Role',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
+                decoration: const InputDecoration(labelText: 'Filter Role'),
                 items: [
                   const DropdownMenuItem<UserRole?>(child: Text('Semua Role')),
                   ...kManageableRoles.map(
@@ -108,24 +104,20 @@ class _AccountManagementTabState extends State<AccountManagementTab> {
 
               if (isNarrow) {
                 return Column(
-                  children: [
-                    searchField,
-                    const SizedBox(height: 10),
-                    roleDropdown,
-                  ],
+                  children: [searchField, AppDimensions.gap10, roleDropdown],
                 );
               }
 
               return Row(
                 children: [
                   Expanded(flex: 2, child: searchField),
-                  const SizedBox(width: 12),
+                  AppDimensions.gap12,
                   Expanded(child: roleDropdown),
                 ],
               );
             },
           ),
-          const SizedBox(height: 16),
+          AppDimensions.gap16,
           Expanded(
             child: provider.isLoadingAccounts
                 ? const Center(child: CircularProgressIndicator())
@@ -137,12 +129,18 @@ class _AccountManagementTabState extends State<AccountManagementTab> {
                         Icon(
                           Icons.search_off_rounded,
                           size: 48,
-                          color: Colors.grey.shade400,
+                          color: colors.outline,
                         ),
-                        const SizedBox(height: 8),
-                        const Text('Tidak ada akun yang sesuai filter.'),
+                        AppDimensions.gap8,
+                        Text(
+                          'Tidak ada akun yang sesuai filter.',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: colors.onSurfaceVariant,
+                          ),
+                        ),
                         if (provider.searchQuery.isNotEmpty ||
-                            provider.filterRole != null)
+                            provider.filterRole != null) ...[
+                          AppDimensions.gap4,
                           TextButton(
                             onPressed: () {
                               _searchController.clear();
@@ -150,6 +148,7 @@ class _AccountManagementTabState extends State<AccountManagementTab> {
                             },
                             child: const Text('Reset Filter'),
                           ),
+                        ],
                       ],
                     ),
                   )
@@ -157,7 +156,7 @@ class _AccountManagementTabState extends State<AccountManagementTab> {
                     onRefresh: provider.loadAccounts,
                     child: ListView.separated(
                       itemCount: accounts.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 8),
+                      separatorBuilder: (_, _) => AppDimensions.gap8,
                       itemBuilder: (context, index) {
                         return AccountCardItem(account: accounts[index]);
                       },

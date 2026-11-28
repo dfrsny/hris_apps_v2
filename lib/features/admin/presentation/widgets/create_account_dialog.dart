@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
+import 'package:hris_apps/apps/theme/app_colors.dart';
+import 'package:hris_apps/apps/theme/app_dimensions.dart';
 import 'package:hris_apps/features/admin/presentation/extensions/user_role_ui_ext.dart';
 import 'package:hris_apps/features/admin/presentation/providers/admin_provider.dart';
 import 'package:hris_apps/features/auth/domain/entities/user_role.dart';
@@ -8,13 +10,11 @@ class CreateAccountDialog extends StatefulWidget {
   const CreateAccountDialog({super.key});
 
   static Future<void> show(BuildContext context) {
-    // 1. Ambil instance AdminProvider dari context halaman saat ini
     final adminProvider = context.read<AdminProvider>();
 
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
-      
       builder: (_) => ChangeNotifierProvider<AdminProvider>.value(
         value: adminProvider,
         child: const CreateAccountDialog(),
@@ -59,25 +59,31 @@ class _CreateAccountDialogState extends State<CreateAccountDialog> {
     if (!mounted) return;
     if (success) {
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text('Akun $email (${role.label}) berhasil dibuat.'),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('Akun $email (${role.label}) berhasil dibuat.'),
+          ),
+        );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.red,
-          content: Text('Gagal membuat akun. Silakan coba lagi.'),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.error,
+            content: Text(
+              provider.errorMessage ?? 'Gagal membuat akun. Silakan coba lagi.',
+            ),
+          ),
+        );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final isCreating = context.select<AdminProvider, bool>(
       (p) => p.isCreatingAccount,
     );
@@ -86,7 +92,9 @@ class _CreateAccountDialogState extends State<CreateAccountDialog> {
       title: const Text('Buat Akun Baru'),
       content: SingleChildScrollView(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
+          constraints: const BoxConstraints(
+            maxWidth: AppDimensions.maxFormWidth,
+          ),
           child: Form(
             key: _formKey,
             child: Column(
@@ -94,46 +102,59 @@ class _CreateAccountDialogState extends State<CreateAccountDialog> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: AppDimensions.paddingBanner,
                   decoration: BoxDecoration(
-                    color: Colors.blueGrey.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(8),
+                    color: AppColors.infoSurface,
+                    borderRadius: AppDimensions.borderRadiusSm,
+                    border: Border.all(
+                      color: AppColors.info.withValues(alpha: 0.25),
+                    ),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.info_outline, size: 18, color: Colors.black54),
-                      SizedBox(width: 8),
+                      const Icon(
+                        Icons.info_outline_rounded,
+                        size: 18,
+                        color: AppColors.info,
+                      ),
+                      AppDimensions.gap8,
                       Expanded(
                         child: Text(
                           'Akun dibuat lewat Edge Function. Role Super Admin hanya dapat diberikan melalui SQL manual.',
-                          style: TextStyle(fontSize: 12, color: Colors.black87),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.info,
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                AppDimensions.gap16,
                 TextFormField(
                   controller: _nameCtrl,
                   textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(
                     labelText: 'Nama Tampilan Akun',
-                    prefixIcon: Icon(Icons.badge_outlined),
-                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(
+                      Icons.badge_outlined,
+                      size: AppDimensions.iconMd,
+                    ),
                   ),
                   validator: (val) => (val == null || val.trim().isEmpty)
                       ? 'Nama wajib diisi'
                       : null,
                 ),
-                const SizedBox(height: 12),
+                AppDimensions.gap12,
                 TextFormField(
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(
                     labelText: 'Email Login',
-                    prefixIcon: Icon(Icons.email_outlined),
-                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(
+                      Icons.email_outlined,
+                      size: AppDimensions.iconMd,
+                    ),
                   ),
                   validator: (val) {
                     if (val == null || !val.contains('@')) {
@@ -142,19 +163,22 @@ class _CreateAccountDialogState extends State<CreateAccountDialog> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 12),
+                AppDimensions.gap12,
                 TextFormField(
                   controller: _passwordCtrl,
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
                     labelText: 'Password Sementara',
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(
+                      Icons.lock_outline_rounded,
+                      size: AppDimensions.iconMd,
+                    ),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
+                        size: AppDimensions.iconMd,
                       ),
                       onPressed: () {
                         setState(() => _obscurePassword = !_obscurePassword);
@@ -165,13 +189,15 @@ class _CreateAccountDialogState extends State<CreateAccountDialog> {
                       ? 'Minimal 8 karakter'
                       : null,
                 ),
-                const SizedBox(height: 12),
+                AppDimensions.gap12,
                 DropdownButtonFormField<UserRole>(
                   initialValue: _selectedRole,
                   decoration: const InputDecoration(
                     labelText: 'Role Akses',
-                    prefixIcon: Icon(Icons.admin_panel_settings_outlined),
-                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(
+                      Icons.admin_panel_settings_outlined,
+                      size: AppDimensions.iconMd,
+                    ),
                   ),
                   items: kManageableRoles.map((role) {
                     return DropdownMenuItem(
@@ -198,15 +224,18 @@ class _CreateAccountDialogState extends State<CreateAccountDialog> {
         FilledButton.icon(
           onPressed: isCreating ? null : _submit,
           icon: isCreating
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
+              ? SizedBox(
+                  width: AppDimensions.iconSm,
+                  height: AppDimensions.iconSm,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: Colors.white,
+                    color: colors.onPrimary,
                   ),
                 )
-              : const Icon(Icons.person_add, size: 18),
+              : const Icon(
+                  Icons.person_add_rounded,
+                  size: AppDimensions.iconSm,
+                ),
           label: const Text('Buat Akun'),
         ),
       ],

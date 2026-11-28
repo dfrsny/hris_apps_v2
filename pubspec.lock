@@ -174,6 +174,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_calendar_carousel:
+    dependency: "direct main"
+    description:
+      name: flutter_calendar_carousel
+      sha256: af52f1c2f75e8dc51d371a85eb32cdb79b6a64fbe9a4ed714995995ab264c9b0
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.0.1"
   flutter_lints:
     dependency: "direct dev"
     description:
@@ -213,6 +221,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.7.1"
+  gap:
+    dependency: "direct main"
+    description:
+      name: gap
+      sha256: ba305c9fb29d48b4ddfc59cbe4a437fc67b2e18824ec7729196289504d50570b
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.1.0"
   gotrue:
     dependency: transitive
     description:

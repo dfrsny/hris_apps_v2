@@ -11,7 +11,7 @@ enum UserRole {
       case 'hr':
         return UserRole.hr;
       case 'finance':
-        return UserRole.employee;
+        return UserRole.finance;
       default:
         return UserRole.employee;
     }
